@@ -17,7 +17,6 @@ class GenerateForceProfile:
         mag_values = np.linspace(a, b, points)
         return func(mag_values)
     
-    
     def plot_trajectory_and_curvature(self, x, y, z, N, kappa, ax=None, color="b"):
         scale_factor = 0.1
         magnitudes = np.linalg.norm(N, axis=1)
@@ -28,6 +27,9 @@ class GenerateForceProfile:
                     curvature_direction[0], curvature_direction[1], curvature_direction[2]
                                     , color=color, length=magnitudes[i], normalize=True)
 
+    def get_refined_forces(self, original_force1, original_force2, k, alpha=-1.0, beta=-1.0):
+        return (original_force1/k)*alpha + (original_force2/k)*beta
+        
     def getRefinedTrajecotry(self, example_id=1, noise_level=0.21, k=15):
         if example_id == 0 or example_id is None:
             example_id = 1
@@ -43,8 +45,6 @@ class GenerateForceProfile:
             y = r * np.cos(t)
             z = r * np.cos(2 * t)
 
-
-        # Calculate TNB
         dr = np.column_stack((np.gradient(x), np.gradient(y), np.gradient(z)))
         ds = np.linalg.norm(dr, axis=1)
         T = dr / ds[:, np.newaxis]
@@ -67,12 +67,25 @@ class GenerateForceProfile:
         self.plot_trajectory_and_curvature(x, y, z, force_profile_with_noise, kappa, ax=ax, color=(0.0, 1.0, 0.0, 0.1))
         
         resultant_foruce = force_profile + force_profile_with_noise
-        self.plot_trajectory_and_curvature(x, y, z, resultant_foruce, kappa, ax=ax, color=(0.0, 0.0, 1.0, 0.1))
+        self.plot_trajectory_and_curvature(x, y, z, resultant_foruce, kappa
+                                           , ax=ax, color=(0.0, 0.0, 1.0, 0.1))
         
-        sub_traj = resultant_foruce/k
         ax.plot(x, y, z, label='initial trajecotry', color="k")
-        ax.plot(x + sub_traj[:,0], y + sub_traj[:,1], z + sub_traj[:,2]
-                , label='refined trajecotry', color="y", linewidth=3.0)
+        
+        expected_forces = resultant_foruce/k
+        expected_traj = np.vstack((x + expected_forces[:,0], y + expected_forces[:,1]
+                                  , z + expected_forces[:,2])).T
+        ax.plot(expected_traj[:,0], expected_traj[:,1], expected_traj[:,2]
+                , label='expected trajecotry', color="y", linewidth=3.0)
+        
+        refined_forces = self.get_refined_forces(force_profile
+                            , force_profile_with_noise, k, alpha=-1.0, beta=-1.0)
+        
+        refined_traj = np.vstack((x + refined_forces[:,0], y + refined_forces[:,1]
+                                  , z + refined_forces[:,2])).T
+        
+        ax.plot(refined_traj[:,0], refined_traj[:,1], refined_traj[:,2]
+                , label='refined trajecotry', color="magenta", linewidth=3.0)
         
         ax.set_title(f'With Noise (level={noise_level})')
         ax.set_title('Trajectory and Curvature Direction')

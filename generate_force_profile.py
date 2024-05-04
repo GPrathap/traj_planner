@@ -44,6 +44,20 @@ class GenerateForceProfile:
             x = r * np.sin(t)
             y = r * np.cos(t)
             z = r * np.cos(2 * t)
+            
+        if example_id == 2:
+            t = self.t_func([0, 2 * np.pi])
+            r = 1
+            x = t
+            y = r * np.cos(t)
+            z = r * np.cos(2 * t)
+            
+        if example_id == 3:
+            t = self.t_func([0, 2 * np.pi])
+            r = 1
+            x = t
+            y = t
+            z = r * np.cos(2 * t)
 
         dr = np.column_stack((np.gradient(x), np.gradient(y), np.gradient(z)))
         ds = np.linalg.norm(dr, axis=1)
@@ -99,5 +113,5 @@ class GenerateForceProfile:
         plt.show()
 
 gen_force_profile = GenerateForceProfile()
-gen_force_profile.getRefinedTrajecotry(example_id=1, noise_level=0.21, k=5)
+gen_force_profile.getRefinedTrajecotry(example_id=3, noise_level=0.21, k=5)
 

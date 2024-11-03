@@ -51,15 +51,17 @@ class DataProcessing:
         
     def get_training_and_testing_dataset(self, dataset_file, train_test_ratio, max_num_points, random_state):
         
-        self.df_ful = pd.read_csv(dataset_file, skiprows=1, nrows=max_num_points if max_num_points > 0 else None)
-        self.df = self.df_ful[["f_x","f_y","f_z", "def_dx", "def_dy", "def_dz"]]
+        self.df_ful = pd.read_csv(dataset_file, nrows=max_num_points if max_num_points > 0 else None)
+        self.df_ful = self.df_ful.dropna()
+
+        self.df = self.df_ful[["f_x","f_y","f_z", "diff_x", "diff_y", "diff_z"]]
         self.sc = MinMaxScaler(feature_range=(-1, 1))
         self.label_sc = MinMaxScaler(feature_range=(-1, 1))
         self.data = self.sc.fit_transform(self.df.values)
         # self.label = self.label_sc.fit(self.df.iloc[:, self.label_col_index].values.reshape(-1, self.output_data_size))
         self.inputs = self.data[:, self.inputs_cols_indices]
         self.labels = self.data[:, self.label_col_index]
-        self.desired_traj = self.df_ful[["p_x", "p_y", "p_z"]].values
+        self.desired_traj = self.df_ful[["x", "y", "z"]].values
         self.desired_forces = self.df_ful[["f_x", "f_y", "f_z"]].values
         
         test_portion_isolate = int(train_test_ratio *2.0*len(self.inputs))
@@ -274,106 +276,111 @@ class MultitaskDeepGP(DeepGP):
         return preds.mean.mean(0), preds.variance.mean(0)
 
 
-# data_file = "/home/op/fttraj/data/cone_profile.csv"
-# inputs_cols_indices = [0, 1, 2]
-# label_col_index = [3, 4, 5]
-# num_tasks = len(label_col_index)
-# max_num_points = -1
-# data_loader = DataProcessing(data_file, inputs_cols_indices, label_col_index, max_num_points, train_test_ratio=0.2)
-# train_x, train_y, desired_traj_training = data_loader.get_training_data()
-# test_x, test_y, desired_traj_testing = data_loader.get_testing_data()
+data_file = "/home/op/fttraj/new_data/data_25.csv"
+inputs_cols_indices = [0, 1, 2]
+label_col_index = [3, 4, 5]
+num_tasks = len(label_col_index)
+max_num_points = -1
+data_loader = DataProcessing(data_file, inputs_cols_indices, label_col_index, max_num_points, train_test_ratio=0.2)
+train_x, train_y, desired_traj_training = data_loader.get_training_data()
+test_x, test_y, desired_traj_testing = data_loader.get_testing_data()
 
-# training_iterations = 50
+training_iterations = 15
 
-# likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=num_tasks)
-# # model = MultitaskGPModel(train_x, train_y, likelihood=likelihood, num_tasks=num_tasks)
-# input_size=len(inputs_cols_indices)
-# hidden_size=1
-# num_layers=2
-# model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
-#                         , likelihood=likelihood, input_size=input_size, hidden_size=hidden_size
-#                         , num_layers=num_layers, num_tasks=num_tasks)
-# # model = MultitaskDeepGP(train_x.shape, num_tasks=num_tasks, num_inducing=128)
+likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=num_tasks)
+# model = MultitaskGPModel(train_x, train_y, likelihood=likelihood, num_tasks=num_tasks)
+input_size=len(inputs_cols_indices)
+hidden_size=1
+num_layers=2
+model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
+                        , likelihood=likelihood, input_size=input_size, hidden_size=hidden_size
+                        , num_layers=num_layers, num_tasks=num_tasks)
+# model = MultitaskDeepGP(train_x.shape, num_tasks=num_tasks, num_inducing=128)
 
-# # find optimal model hyperparameters
-# model.train()
-# model.likelihood.train()
-# model.to(device)
+# find optimal model hyperparameters
+model.train()
+model.likelihood.train()
+model.to(device)
 
-# # # use the adam optimizer
-# optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
-# # # "loss" for GPs - the marginal log likelihood
-# # mll = DeepApproximateMLL(VariationalELBO(model.likelihood, model, num_data=train_y.size(0)))
-# mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
-
-
-# train_x, train_y = train_x.to(device), train_y.to(device)
-# test_x = test_x.to(device)
+# # use the adam optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
+# # "loss" for GPs - the marginal log likelihood
+# mll = DeepApproximateMLL(VariationalELBO(model.likelihood, model, num_data=train_y.size(0)))
+mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
 
 
-# for i in tqdm(range(training_iterations), desc="Training"):
-#     optimizer.zero_grad()
-#     output = model(train_x)
-#     loss = -mll(output, train_y)
-#     # epochs_iter.set_postfix(loss=loss.item())
-#     loss.backward()
-#     print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
-#     optimizer.step()
+train_x, train_y = train_x.to(device), train_y.to(device)
+test_x = test_x.to(device)
+print(train_x)
+for i in tqdm(range(training_iterations), desc="Training"):
+    optimizer.zero_grad()
+    output = model(train_x)
+    loss = -mll(output, train_y)
+    # epochs_iter.set_postfix(loss=loss.item())
+    loss.backward()
+    print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
+    optimizer.step()
     
-# model.eval()
-# model.likelihood.eval()
+model.eval()
+model.likelihood.eval()
 
 
-# mean_list = []
-# var_list = []
-# model.eval()
-# with torch.no_grad(), gpytorch.settings.fast_pred_var():
-#     batch_x = test_x
-#     mean_batch, var_batch = model.predict(batch_x)
-#     mean_list.append(mean_batch.cpu())
-#     var_list.append(var_batch.cpu())
+mean_list = []
+var_list = []
+model.eval()
+with torch.no_grad(), gpytorch.settings.fast_pred_var():
+    batch_x = test_x
+    mean_batch, var_batch = model.predict(batch_x)
+    mean_list.append(mean_batch.cpu())
+    var_list.append(var_batch.cpu())
         
 
-# mean = torch.cat(mean_list, dim=0)
-# var = torch.cat(var_list, dim=0)
-# lower = mean - 2 * var.sqrt()
-# upper = mean + 2 * var.sqrt()
+mean = torch.cat(mean_list, dim=0)
+var = torch.cat(var_list, dim=0)
+lower = mean - 2 * var.sqrt()
+upper = mean + 2 * var.sqrt()
 
-# # Plot results
-# start_index = 100
-# end_index = 200
-# points = mean.cpu().numpy()[start_index:end_index]
-# test_x = test_x[start_index:end_index]
-# lower = lower[start_index:end_index]
-# upper = upper[start_index:end_index]
+# Plot results
+start_index = 100
+end_index = 300
+points = mean.cpu().numpy()[start_index:end_index]
+test_x = test_x[start_index:end_index]
+lower = lower[start_index:end_index]
+upper = upper[start_index:end_index]
 
-# time_index = torch.linspace(0, 200, points.shape[0])
+time_index = torch.linspace(0, 200, points.shape[0])
 
-# fig, axs = plt.subplots(1, num_tasks, figsize=(4*num_tasks, 3))
-# for task, ax in enumerate(axs):
-#     # ax.plot(train_x.squeeze(-1).detach().numpy(), train_y[:, task].cpu().detach().numpy(), 'k*')
-#     ax.plot(time_index, points[:, task], 'b', label="estimated d"+str(task))
-#     ax.plot(time_index, test_x[:, task].cpu().numpy(), 'r', label="ref d"+str(task))
-#     ax.fill_between(time_index, lower[:, task].cpu().numpy(), upper[:, task].cpu().numpy(), alpha=0.5)
-#     ax.set_ylim([-3, 3])
-#     ax.legend()
-#     ax.set_title(f'Task {task + 1}')
-# fig.tight_layout()
+fig, axs = plt.subplots(1, num_tasks, figsize=(4*num_tasks, 3))
+for task, ax in enumerate(axs):
+    # ax.plot(train_x.squeeze(-1).detach().numpy(), train_y[:, task].cpu().detach().numpy(), 'k*')
+    ax.plot(time_index, points[:, task], 'b', label="estimated d"+str(task))
+    ax.plot(time_index, test_x[:, task].cpu().numpy(), 'r', label="ref d"+str(task))
+    ax.fill_between(time_index, lower[:, task].cpu().numpy(), upper[:, task].cpu().numpy(), alpha=0.5)
+    ax.set_ylim([-3, 3])
+    ax.legend()
+    ax.set_title(f'Task {task + 1}')
+fig.tight_layout()
 
-# # plot training data as black stars
-# # ref_traj = data_loader.get_ref_traj()
-# # ref_forces = data_loader.get_ref_forces()
+# plot training data as black stars
+# ref_traj = data_loader.get_ref_traj()
+# ref_forces = data_loader.get_ref_forces()
 
-# # vis_modeling = VisModeling()
+# vis_modeling = VisModeling()
 
-# # fig = plt.figure(figsize=(10, 8))
-# # ax = fig.add_subplot(111, projection='3d') 
-# # vis_modeling.plot_trajectory(ax, ref_traj, ref_forces)
+# fig = plt.figure(figsize=(10, 8))
+# ax = fig.add_subplot(111, projection='3d') 
+# vis_modeling.plot_trajectory(ax, ref_traj, ref_forces)
 
-# # fig = plt.figure(figsize=(10, 8))
-# # ax1 = fig.add_subplot(111, projection='3d') 
-# # vis_modeling.plot_projected_traj(ax1, desired_traj_testing, mean.numpy())
+# fig = plt.figure(figsize=(10, 8))
+# ax1 = fig.add_subplot(111, projection='3d') 
+# vis_modeling.plot_projected_traj(ax1, desired_traj_testing, mean.numpy())
 
-# plt.show()
+# Save the model and optimizer
+torch.save({
+    'model_state_dict': model.state_dict(),
+    'likelihood_state_dict': likelihood.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict()
+}, '/home/op/fttraj/gp_deformation.pth')
 
+plt.show()
 

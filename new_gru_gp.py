@@ -230,6 +230,7 @@ for x, label in train_loader:
         optimizer.zero_grad()
         output = model(train_x)
         loss = -mll(output, train_y)
+        loss = loss.sum()
         loss.backward()
         print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
         optimizer.step()
@@ -243,8 +244,8 @@ for x, label in train_loader:
 
     # Make predictions
     with torch.no_grad(), gpytorch.settings.fast_pred_var():
-        test_x = torch.linspace(0, 1, 51)
-        predictions = likelihood(model(test_x))
+        test_x = train_x
+        predictions = likelihood(model(train_x))
         mean = predictions.mean
         lower, upper = predictions.confidence_region()
 
@@ -253,24 +254,24 @@ for x, label in train_loader:
     # The second half is for the second task
 
     # Plot training data as black stars
-    y1_ax.plot(train_x.detach().numpy(), train_y[:, 0].detach().numpy(), 'k*')
-    # Predictive mean as blue line
-    y1_ax.plot(test_x.numpy(), mean[:, 0].numpy(), 'b')
-    # Shade in confidence
-    y1_ax.fill_between(test_x.numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5)
-    y1_ax.set_ylim([-3, 3])
-    y1_ax.legend(['Observed Data', 'Mean', 'Confidence'])
-    y1_ax.set_title('Observed Values (Likelihood)')
+    y1_ax.plot(train_x[:, 0].detach().numpy(), train_y[:, 0].detach().numpy(), 'k*')
+    # # Predictive mean as blue line
+    # y1_ax.plot(test_x[:, 0].numpy(), mean[:, 0].numpy(), 'b')
+    # # Shade in confidence
+    # y1_ax.fill_between(test_x[:, 0].numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5)
+    # y1_ax.set_ylim([-3, 3])
+    # y1_ax.legend(['Observed Data', 'Mean', 'Confidence'])
+    # y1_ax.set_title('Observed Values (Likelihood)')
 
-    # Plot training data as black stars
-    y2_ax.plot(train_x.detach().numpy(), train_y[:, 1].detach().numpy(), 'k*')
-    # Predictive mean as blue line
-    y2_ax.plot(test_x.numpy(), mean[:, 1].numpy(), 'b')
-    # Shade in confidence
-    y2_ax.fill_between(test_x.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5)
-    y2_ax.set_ylim([-30, 30])
-    y2_ax.legend(['Observed Data', 'Mean', 'Confidence'])
-    y2_ax.set_title('Observed Values (Likelihood)')
+    # # Plot training data as black stars
+    # y2_ax.plot(train_x.detach().numpy(), train_y[:, 1].detach().numpy(), 'k*')
+    # # Predictive mean as blue line
+    # y2_ax.plot(test_x.numpy(), mean[:, 1].numpy(), 'b')
+    # # Shade in confidence
+    # y2_ax.fill_between(test_x.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5)
+    # y2_ax.set_ylim([-30, 30])
+    # y2_ax.legend(['Observed Data', 'Mean', 'Confidence'])
+    # y2_ax.set_title('Observed Values (Likelihood)')
     plt.show()
     
 # def train(

@@ -159,7 +159,7 @@ class MultitaskGPModelGRU(gpytorch.models.ExactGP):
             preds = model.likelihood(model(test_x)).to_data_independent_dist()
         return preds.mean, preds.variance
     
-training_iterations = 1500
+training_iterations = 10000
 num_tasks = 3
 likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=num_tasks)
 input_size=3
@@ -169,39 +169,39 @@ model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
                         , likelihood=likelihood, input_size=input_size, hidden_size=hidden_size
                         , num_layers=num_layers, num_tasks=num_tasks)
 
-# # find optimal model hyperparameters
-model.train()
-model.likelihood.train()
-model.to(device)
+# # # find optimal model hyperparameters
+# model.train()
+# model.likelihood.train()
+# model.to(device)
 
-# # # use the adam optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+# # # # use the adam optimizer
+# optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
-mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
+# mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
 
 
-train_x, train_y = train_x.to(device), train_y.to(device)
-test_x = train_x.to(device)
-# print(train_x)
-for i in tqdm(range(training_iterations), desc="Training"):
-    optimizer.zero_grad()
-    output = model(train_x)
-    loss = -mll(output, train_y)
-    # epochs_iter.set_postfix(loss=loss.item())
-    loss.backward()
-    print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
-    optimizer.step()
-    if(i%50 == 0):
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'likelihood_state_dict': likelihood.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
-        }, '/home/op/fttraj/gp_deformation_'+str(i)+'.pth')
+# train_x, train_y = train_x.to(device), train_y.to(device)
+# test_x = train_x.to(device)
+# # print(train_x)
+# for i in tqdm(range(training_iterations), desc="Training"):
+#     optimizer.zero_grad()
+#     output = model(train_x)
+#     loss = -mll(output, train_y)
+#     # epochs_iter.set_postfix(loss=loss.item())
+#     loss.backward()
+#     print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
+#     optimizer.step()
+#     if(i%100 == 0):
+#         torch.save({
+#             'model_state_dict': model.state_dict(),
+#             'likelihood_state_dict': likelihood.state_dict(),
+#             'optimizer_state_dict': optimizer.state_dict()
+#         }, '/home/op/fttraj/gp_deformation_'+str(i)+'.pth')
 
     
 
 # Save the model and optimizer
-checkpoint = torch.load('/home/op/fttraj/gp_deformation_50.pth')
+checkpoint = torch.load('/home/op/fttraj/gp_deformation_800.pth')
 
 model.load_state_dict(checkpoint['model_state_dict'])
 likelihood.load_state_dict(checkpoint['likelihood_state_dict'])
@@ -244,7 +244,7 @@ y2_ax.plot(time_index, train_y[:, 1].cpu().numpy(), 'r')
 # Predictive mean as blue line
 y2_ax.plot(time_index, mean[:, 1].cpu().numpy(), 'b')
 # Shade in confidence
-# y2_ax.fill_between(test_x.cpu().numpy()[:,1], lower[:, 1].cpu().numpy(), upper[:, 1].cpu().numpy(), alpha=0.5)
+# y2_ax.fill_between(time_index, mean[:, 1].cpu().numpy(), lower[:, 1].cpu().numpy(), upper[:, 1].cpu().numpy(), alpha=0.5)
 # y2_ax.set_ylim([-0.5, 3])
 y2_ax.legend(['observed deformation', 'estimated deformation', 'confidence'])
 y2_ax.set_title('deformation in y-axis')
@@ -255,7 +255,7 @@ y3_ax.plot(time_index, train_y[:, 2].cpu().numpy(), 'r')
 # Predictive mean as blue line
 y3_ax.plot(time_index, mean[:, 2].cpu().numpy(), 'b')
 # Shade in confidence
-# y3_ax.fill_between(test_x.cpu().numpy()[:,2], lower[:, 2].cpu().numpy(), upper[:, 2].cpu().numpy(), alpha=0.5)
+# y3_ax.fill_between(time_index, lower[:, 2].cpu().numpy(), upper[:, 2].cpu().numpy(), alpha=0.5)
 # y3_ax.set_ylim([-0.5, 3])
 y3_ax.legend(['observed deformation', 'estimated deformation', 'confidence'])
 y3_ax.set_title('deformation in z-axis')
@@ -264,36 +264,36 @@ y3_ax.set_ylabel('deformation (m)')
 
 plt.show()
 
-# n_traj_x_projected, n_traj_y_projected, n_traj_z_projected = n_traj_x - mean[:,0].numpy(), n_traj_y - mean[:,1].numpy(), n_traj_z - mean[:,2].numpy()
-# fig = plt.figure(figsize=(14, 6))
-# ax1 = fig.add_subplot(121, projection='3d')
-# ax1.plot(n_traj_x_projected, n_traj_y_projected, n_traj_z_projected, 'k', label="estimated trajectory")
-# ax1.set_xlabel('x (m)')
-# ax1.set_ylabel('y (m)')
-# ax1.set_zlabel('z (m)')
-# ax1.legend()
+n_traj_x_projected, n_traj_y_projected, n_traj_z_projected = n_traj_x - mean[:,0].numpy(), n_traj_y - mean[:,1].numpy(), n_traj_z - mean[:,2].numpy()
+fig = plt.figure(figsize=(14, 6))
+ax1 = fig.add_subplot(121, projection='3d')
+ax1.plot(n_traj_x_projected, n_traj_y_projected, n_traj_z_projected, 'k', label="estimated trajectory")
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
+ax1.set_zlabel('z (m)')
+ax1.legend()
 
-# ax2 = fig.add_subplot(122, projection='3d')
-# ax2.plot(mirror_deformed_traj_x, mirror_deformed_traj_y, mirror_deformed_traj_z, 'r', label="expected trajectory")
-# ax2.set_xlabel('x (m)')
-# ax2.set_ylabel('y (m)')
-# ax2.set_zlabel('z (m)')
-# ax2.legend()
-# plt.show()
+ax2 = fig.add_subplot(122, projection='3d')
+ax2.plot(mirror_deformed_traj_x, mirror_deformed_traj_y, mirror_deformed_traj_z, 'r', label="expected trajectory")
+ax2.set_xlabel('x (m)')
+ax2.set_ylabel('y (m)')
+ax2.set_zlabel('z (m)')
+ax2.legend()
+plt.show()
 
-# def_error_estimated = np.array([mean[:,0].cpu().numpy(), mean[:,1].cpu().numpy(), mean[:,2].cpu().numpy()])
-# def_actual = np.array([d_n_x, d_n_y, d_n_z])
-# diff = def_error_estimated - def_actual
-# # # Compute the magnitude of the differences
-# diff_magnitude = np.linalg.norm(diff, axis=0)
-# train_linespace = torch.linspace(0, diff_magnitude.shape[0], diff_magnitude.shape[0])
+def_error_estimated = np.array([mean[:,0].cpu().numpy(), mean[:,1].cpu().numpy(), mean[:,2].cpu().numpy()])
+def_actual = np.array([d_n_x, d_n_y, d_n_z])
+diff = def_error_estimated - def_actual
+# # Compute the magnitude of the differences
+diff_magnitude = np.linalg.norm(diff, axis=0)
+train_linespace = torch.linspace(0, diff_magnitude.shape[0], diff_magnitude.shape[0])
 
-# # # Plot the magnitude of the differences
-# plt.figure()
-# plt.plot(train_linespace, diff_magnitude, label='magnitude of differences', color='m')
-# plt.xlabel('time (s)')
-# plt.ylabel('magnitude of differences')
-# plt.title('magnitude of differences between trajectories (expected and estimated)')
-# plt.legend()
-# plt.show()
+# # Plot the magnitude of the differences
+plt.figure()
+plt.plot(train_linespace, diff_magnitude, label='magnitude of differences', color='m')
+plt.xlabel('time (s)')
+plt.ylabel('magnitude of differences')
+plt.title('magnitude of differences between trajectories (expected and estimated)')
+plt.legend()
+plt.show()
 

@@ -58,7 +58,7 @@ is_cuda = torch.cuda.is_available()
 device = torch.device("cpu")
     
 # Load the CSV file into a pandas DataFrame
-df = pd.read_csv('/home/op/fttraj/new_data/data_27.csv')
+df = pd.read_csv('/home/op/fttraj/new_data/data_29.csv')
 df = df.dropna()
 # df = self.df_ful[["f_x","f_y","f_z", "diff_x", "diff_y", "diff_z"]]
 
@@ -169,39 +169,39 @@ model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
                         , likelihood=likelihood, input_size=input_size, hidden_size=hidden_size
                         , num_layers=num_layers, num_tasks=num_tasks)
 
-# # # find optimal model hyperparameters
-model.train()
-model.likelihood.train()
-model.to(device)
+# # # # find optimal model hyperparameters
+# model.train()
+# model.likelihood.train()
+# model.to(device)
 
-# # # use the adam optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+# # # # use the adam optimizer
+# optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
-mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
+# mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
 
 
-train_x, train_y = train_x.to(device), train_y.to(device)
-test_x = train_x.to(device)
-# print(train_x)
-for i in tqdm(range(training_iterations), desc="Training"):
-    optimizer.zero_grad()
-    output = model(train_x)
-    loss = -mll(output, train_y)
-    # epochs_iter.set_postfix(loss=loss.item())
-    loss.backward()
-    print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
-    optimizer.step()
-    if(i%100 == 0):
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'likelihood_state_dict': likelihood.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
-        }, '/home/op/fttraj/gp_deformation_'+str(i)+'_27.pth')
+# train_x, train_y = train_x.to(device), train_y.to(device)
+# test_x = train_x.to(device)
+# # print(train_x)
+# for i in tqdm(range(training_iterations), desc="Training"):
+#     optimizer.zero_grad()
+#     output = model(train_x)
+#     loss = -mll(output, train_y)
+#     # epochs_iter.set_postfix(loss=loss.item())
+#     loss.backward()
+#     print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
+#     optimizer.step()
+#     if(i%100 == 0):
+#         torch.save({
+#             'model_state_dict': model.state_dict(),
+#             'likelihood_state_dict': likelihood.state_dict(),
+#             'optimizer_state_dict': optimizer.state_dict()
+#         }, '/home/op/fttraj/gp_deformation_'+str(i)+'_29.pth')
 
     
 
 # Save the model and optimizer
-checkpoint = torch.load('/home/op/fttraj/gp_deformation_4800.pth')
+checkpoint = torch.load('/home/op/fttraj/gp_deformation_4600_29.pth')
 
 model.load_state_dict(checkpoint['model_state_dict'])
 likelihood.load_state_dict(checkpoint['likelihood_state_dict'])

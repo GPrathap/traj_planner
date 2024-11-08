@@ -169,34 +169,34 @@ model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
                         , likelihood=likelihood, input_size=input_size, hidden_size=hidden_size
                         , num_layers=num_layers, num_tasks=num_tasks)
 
-# # # find optimal model hyperparameters
-model.train()
-model.likelihood.train()
-model.to(device)
+# # # # find optimal model hyperparameters
+# model.train()
+# model.likelihood.train()
+# model.to(device)
 
-# # # use the adam optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+# # # # use the adam optimizer
+# optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
-mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
+# mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
 
 
-train_x, train_y = train_x.to(device), train_y.to(device)
-test_x = train_x.to(device)
-# print(train_x)
-for i in tqdm(range(training_iterations), desc="Training"):
-    optimizer.zero_grad()
-    output = model(train_x)
-    loss = -mll(output, train_y)
-    # epochs_iter.set_postfix(loss=loss.item())
-    loss.backward()
-    print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
-    optimizer.step()
-    if(i%100 == 0):
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'likelihood_state_dict': likelihood.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
-        }, '/home/op/fttraj/gp_deformation_'+str(i)+'_31.pth')
+# train_x, train_y = train_x.to(device), train_y.to(device)
+# test_x = train_x.to(device)
+# # print(train_x)
+# for i in tqdm(range(training_iterations), desc="Training"):
+#     optimizer.zero_grad()
+#     output = model(train_x)
+#     loss = -mll(output, train_y)
+#     # epochs_iter.set_postfix(loss=loss.item())
+#     loss.backward()
+#     print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iterations, loss.item()))
+#     optimizer.step()
+#     if(i%100 == 0):
+#         torch.save({
+#             'model_state_dict': model.state_dict(),
+#             'likelihood_state_dict': likelihood.state_dict(),
+#             'optimizer_state_dict': optimizer.state_dict()
+#         }, '/home/op/fttraj/gp_deformation_'+str(i)+'_31.pth')
 
     
 

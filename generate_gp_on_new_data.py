@@ -288,6 +288,12 @@ diff = def_error_estimated - def_actual
 diff_magnitude = np.linalg.norm(diff, axis=0)
 train_linespace = torch.linspace(0, diff_magnitude.shape[0], diff_magnitude.shape[0])
 
+plt.figure(figsize=(10, 6))
+plt.boxplot(diff_magnitude, vert=False, patch_artist=True, boxprops=dict(facecolor="skyblue"))
+plt.xlabel('Magnitude of Differences')
+plt.title('Distribution of Magnitude of Differences Between Trajectories (Expected vs. Estimated)')
+plt.show()
+
 # # Plot the magnitude of the differences
 plt.figure()
 plt.plot(train_linespace, diff_magnitude, label='magnitude of differences', color='m')

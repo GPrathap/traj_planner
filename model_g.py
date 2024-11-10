@@ -3,19 +3,23 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 plt.rcParams.update({'font.size': 18})
 # Load the CSV file into a pandas DataFrame
-df = pd.read_csv('/home/op/fttraj/cone_profile.csv',skiprows=1)
+# Load the CSV file into a pandas DataFrame
+df = pd.read_csv('/home/op/fttraj/new_data/data_31.csv')
+df = df.dropna()
+# df = self.df_ful[["f_x","f_y","f_z", "diff_x", "diff_y", "diff_z"]]
 
 # Display the first few rows to understand the structure of the DataFrame
-print(df.head())
+# print(df.head())
 
-
+# Create a 3D plot
+# ax = plt.figure().add_subplot(projection='3d')
 
 start_index = 0
 end_index = -1
 
-n_traj_x, n_traj_y, n_traj_z = df['p_x'][start_index:end_index], df['p_y'][start_index:end_index], df['p_z'][start_index:end_index]
-d_n_x, d_n_y, d_n_z = df['def_dx'][start_index:end_index], df['def_dy'][start_index:end_index], df['def_dz'][start_index:end_index]
-d_p_x, d_p_y, d_p_z = df['spring_dx'][start_index:end_index], df['spring_dy'][start_index:end_index], df['spring_dz'][start_index:end_index]
+n_traj_x, n_traj_y, n_traj_z = df['x'][start_index:end_index], df['y'][start_index:end_index], df['z'][start_index:end_index]
+d_n_x, d_n_y, d_n_z = df['d_x'][start_index:end_index], df['d_y'][start_index:end_index], df['d_z'][start_index:end_index]
+d_p_x, d_p_y, d_p_z = d_n_x, d_n_y, d_n_z
 
 traj_dn_x, traj_dn_y, traj_dn_z = n_traj_x + d_n_x, n_traj_y + d_n_y, n_traj_z + d_n_z
 traj_dp_x, traj_dp_y, traj_dp_z = n_traj_x + d_p_x, n_traj_y + d_p_y, n_traj_z + d_p_z

@@ -68,7 +68,7 @@ df = df.dropna()
 # Create a 3D plot
 # ax = plt.figure().add_subplot(projection='3d')
 
-start_index = 0
+start_index = 1500
 end_index = -1
 
 n_traj_x, n_traj_y, n_traj_z = df['x'][start_index:end_index], df['y'][start_index:end_index], df['z'][start_index:end_index]
@@ -117,19 +117,89 @@ train_x = train_x.type(torch.FloatTensor)
 # plt.show()
 
 
+class MultitaskGPModelGRU(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood, input_size, hidden_size, num_layers, num_tasks=2):
+        super(MultitaskGPModelGRU, self).__init__(train_x, train_y, likelihood)
+        
+        # Define the GRU network
+        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+        
+        # Define a linear layer to map the GRU output to the appropriate size
+        self.linear = nn.Linear(hidden_size, input_size)
+        
+        # Define the mean and covariance modules for GP
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=num_tasks
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=num_tasks, rank=1
+        )
+        self.likelihood = likelihood
 
+    def forward(self, x):
+        # Pass the input through the GRU
+        gru_out, _ = self.gru(x)
+        
+        # Apply the linear transformation
+        x = self.linear(gru_out)  # Use the output of the last time step
+        
+        # Pass the transformed input through the GP model components
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
 
-# Make predictions
+    
+    def predict(self, test_x):
+        with torch.no_grad():
+            # The output of the model is a multitask MVN, where both the data points
+            # and the tasks are jointly distributed
+            # To compute the marginal predictive NLL of each data point,
+            # we will call `to_data_independent_dist`,
+            # which removes the data cross-covariance terms from the distribution.
+            preds = model.likelihood(model(test_x)).to_data_independent_dist()
+        return preds.mean, preds.variance
+    
+training_iterations = 5000
+num_tasks = 3
+likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=num_tasks)
+input_size=3
+hidden_size=1
+num_layers=5
+model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
+                        , likelihood=likelihood, input_size=input_size, hidden_size=hidden_size
+                        , num_layers=num_layers, num_tasks=num_tasks)
+
+# Save the model and optimizer
+checkpoint = torch.load('/home/op/fttraj/gp_deformation_4600_31.pth')
+
+model.load_state_dict(checkpoint['model_state_dict'])
+likelihood.load_state_dict(checkpoint['likelihood_state_dict'])
+
+# Reinitialize the optimizer and load its state
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+# Set model and likelihood to evaluation mode for inference
+model.eval()
+likelihood.eval()
+
 with torch.no_grad(), gpytorch.settings.fast_pred_var():
     test_x = train_x
     predictions = likelihood(model(test_x))
     mean = predictions.mean
     lower, upper = predictions.confidence_region()
 
+# # This contains predictions for both tasks, flattened out
+# # The first half of the predictions is for the first task
+# # The second half is for the second task
+
+
+
+
 
 # MHE parameters
-window_size = 20  # size of the sliding window
-prediction_horizon = 20  # how many steps ahead we want to predict
+window_size = 500  # size of the sliding window
+prediction_horizon = 500  # how many steps ahead we want to predict
 
 # Initialize the sliding window (with initial data)
 current_window_x = train_x[:window_size]
@@ -162,12 +232,13 @@ def predict_deformation(model, likelihood, current_window_x, prediction_horizon)
 def plot_predictions(time_points, mean, lower, upper, true_deformation, new_x, new_y): 
     
     f, (y1_ax, y2_ax, y3_ax) = plt.subplots(1, 3, figsize=(8, 3))
-    y1_ax.plot(time_points, true_deformation.detach().numpy()[:,0], 'k*')
-    y1_ax.plot(time_points.numpy(), mean[:, 0].numpy(), 'b')
+    time_index = torch.linspace(0, 250,  true_deformation.detach().numpy()[:,0].shape[0])
+    y1_ax.plot(time_index, true_deformation.detach().numpy()[:,0], 'k*')
+    y1_ax.plot(time_index, mean[:, 0].numpy(), 'b')
     # y1_ax.plot(new_x.numpy(), new_y.numpy()[0], 'g*')
     # Shade in confidence
-    y1_ax.fill_between(time_points.numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5)
-    y1_ax.set_ylim([-0.5, 3])
+    y1_ax.fill_between(time_index, lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5)
+    y1_ax.set_ylim([-2, 2])
     y1_ax.legend(['actual', 'predict', 'confidence'])
     y1_ax.set_title('deformation in x-axis')
     y1_ax.set_xlabel('time (s)')
@@ -175,12 +246,12 @@ def plot_predictions(time_points, mean, lower, upper, true_deformation, new_x, n
 
     
     # Predictive mean as blue line
-    y2_ax.plot(time_points, true_deformation.detach().numpy()[:,1], 'k*')
-    y2_ax.plot(time_points.numpy(), mean[:, 1].numpy(), 'b')
+    y2_ax.plot(time_index, true_deformation.detach().numpy()[:,1], 'k*')
+    y2_ax.plot(time_index, mean[:, 1].numpy(), 'b')
     # y2_ax.plot(new_x.numpy(), new_y.numpy()[1], 'g*')
     # Shade in confidence
-    y2_ax.fill_between(time_points.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5)
-    y2_ax.set_ylim([-0.5, 3])
+    y2_ax.fill_between(time_index, lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5)
+    y2_ax.set_ylim([-5.5, 5.5])
     y2_ax.legend(['actual', 'predict', 'confidence'])
     y2_ax.set_title('deformation in y-axis')
     y2_ax.set_xlabel('time (s)')
@@ -188,17 +259,20 @@ def plot_predictions(time_points, mean, lower, upper, true_deformation, new_x, n
 
     
     # Predictive mean as blue line
-    y3_ax.plot(time_points, true_deformation.detach().numpy()[:,2], 'k*')
-    y3_ax.plot(time_points.numpy(), mean[:, 2].numpy(), 'b')
+    y3_ax.plot(time_index, true_deformation.detach().numpy()[:,2], 'k*')
+    y3_ax.plot(time_index, mean[:, 2].numpy(), 'b')
     # y3_ax.plot(new_x.numpy(), new_y.numpy()[2], 'g*')
     # Shade in confidence
-    y3_ax.fill_between(time_points.numpy(), lower[:, 2].numpy(), upper[:, 2].numpy(), alpha=0.5)
-    y3_ax.set_ylim([-0.5, 2.5])
+    y3_ax.fill_between(time_index, lower[:, 2].numpy(), upper[:, 2].numpy(), alpha=0.5)
+    y3_ax.set_ylim([-1, 1])
     y3_ax.legend(['actual', 'predict', 'confidence'])
     y3_ax.set_title('deformation in z-axis')
     y3_ax.set_xlabel('time (s)')
     y3_ax.set_ylabel('deformation (m)')
     plt.show()
+
+
+
 
 # Initialize MHE process
 for t in range(window_size, len(train_x) - prediction_horizon):

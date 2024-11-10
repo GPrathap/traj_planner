@@ -43,6 +43,9 @@ from gpytorch.likelihoods import MultitaskGaussianLikelihood
 from matplotlib import pyplot as plt
 from torch.cuda.amp import GradScaler, autocast
 
+import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 38})
+
 torch.cuda.empty_cache()
 gpytorch.settings.cholesky_jitter(1e-4)
 
@@ -236,15 +239,16 @@ def plot_multiple_models(csv_paths, checkpoint_paths):
             # ax.fill_between(time_index, lower[:, j], upper[:, j], color=colors[i % len(colors)], alpha=0.1)
             ax.set_title(f'Deformation in {axis}-axis')
             ax.set_xlabel('Time (s)')
-            ax.set_ylabel('Deformation (m)')
+            ax.set_ylabel('Deformation with wall angle')
     
-    labels=['angle 25','angle 27','angle 29','angle 31','angle 33']
+    labels=['25','27','29','31','33']
     axes[0].legend(loc="upper right")
     
     plt.figure(figsize=(10, 6))
     plt.boxplot(all_diff_magnitudes, labels=labels, vert=False, patch_artist=True, boxprops=dict(facecolor="skyblue"))
-    plt.xlabel('Magnitude of Differences')
-    plt.title('Distribution of Magnitude of Differences Between Trajectories (Expected vs. Estimated) for All Models')
+    plt.xlabel('magnitude of differences')
+    plt.ylabel('deformation with wall angle')
+    # plt.title('Distribution of magnitude of differences between trajectories (expected vs. estimated)')
 
     # plt.figure()
     # train_linespace = torch.linspace(0, all_diff_magnitudes[0].shape[0], all_diff_magnitudes[0].shape[0])

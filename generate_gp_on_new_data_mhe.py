@@ -242,7 +242,7 @@ def plot_predictions(time_points, mean, lower, upper, true_deformation, new_x, n
     y1_ax.legend(['actual', 'predict', 'confidence'])
     y1_ax.set_title('deformation in x-axis')
     y1_ax.set_xlabel('time (s)')
-    y1_ax.set_ylabel('deformation (m)')
+    y1_ax.set_ylabel('deformation (mm)')
 
     
     # Predictive mean as blue line
@@ -255,7 +255,7 @@ def plot_predictions(time_points, mean, lower, upper, true_deformation, new_x, n
     y2_ax.legend(['actual', 'predict', 'confidence'])
     y2_ax.set_title('deformation in y-axis')
     y2_ax.set_xlabel('time (s)')
-    y2_ax.set_ylabel('deformation (m)')
+    # y2_ax.set_ylabel('deformation (mm)')
 
     
     # Predictive mean as blue line
@@ -268,7 +268,7 @@ def plot_predictions(time_points, mean, lower, upper, true_deformation, new_x, n
     y3_ax.legend(['actual', 'predict', 'confidence'])
     y3_ax.set_title('deformation in z-axis')
     y3_ax.set_xlabel('time (s)')
-    y3_ax.set_ylabel('deformation (m)')
+    # y3_ax.set_ylabel('deformation (mm)')
     plt.show()
 
 

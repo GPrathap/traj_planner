@@ -58,7 +58,7 @@ is_cuda = torch.cuda.is_available()
 device = torch.device("cpu")
     
 # Load the CSV file into a pandas DataFrame
-df = pd.read_csv('/home/op/fttraj/new_data/data_20.csv')
+df = pd.read_csv('/home/op/fttraj/new_data/data_33.csv')
 df = df.dropna()
 # df = self.df_ful[["f_x","f_y","f_z", "diff_x", "diff_y", "diff_z"]]
 
@@ -196,7 +196,7 @@ model = MultitaskGPModelGRU(train_x=train_x, train_y=train_y
 #             'model_state_dict': model.state_dict(),
 #             'likelihood_state_dict': likelihood.state_dict(),
 #             'optimizer_state_dict': optimizer.state_dict()
-#         }, '/home/op/fttraj/gp_deformation_'+str(i)+'_27.pth')
+#         }, '/home/op/fttraj/gp_deformation_'+str(i)+'_33.pth')
 
     
 

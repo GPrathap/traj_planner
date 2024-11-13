@@ -214,7 +214,10 @@ def plot_multiple_models(csv_paths, checkpoint_paths):
     colors = ['b', 'g', 'm', 'c', 'y']  # Define colors for each model's plot lines
     
     for csv_path, checkpoint_path in zip(csv_paths, checkpoint_paths):
-        analysis = DeformationTrajectoryAnalysis(csv_path)
+        if '27' in csv_path:
+            analysis = DeformationTrajectoryAnalysis(csv_path, num_layers=2)
+        else:
+            analysis = DeformationTrajectoryAnalysis(csv_path, num_layers=5)
         analysis.load_data()
         analysis.initialize_model()
         analysis.load_checkpoint(checkpoint_path)
@@ -241,8 +244,8 @@ def plot_multiple_models(csv_paths, checkpoint_paths):
         #     ax.set_xlabel('Time (s)')
         #     ax.set_ylabel('Deformation with wall angle')
     
-    # labels=['25','27','29','31','33']
-    labels=['20','32']
+    labels=['25','27','29','31','33']
+    # labels=['20','32']
     axes[0].legend(loc="upper right")
     
     plt.figure(figsize=(10, 6))
@@ -263,12 +266,12 @@ def plot_multiple_models(csv_paths, checkpoint_paths):
     plt.tight_layout()
     plt.show()
 
-# csv_paths = ['/home/op/fttraj/new_data/data_25.csv', '/home/op/fttraj/new_data/data_27.csv', '/home/op/fttraj/new_data/data_29.csv', '/home/op/fttraj/new_data/data_31.csv', '/home/op/fttraj/new_data/data_33.csv']
-# checkpoint_paths = ['/home/op/fttraj/gp_deformation_4600.pth', '/home/op/fttraj/gp_deformation_4600_27.pth'
-#                     ,  '/home/op/fttraj/gp_deformation_4600_29.pth',  '/home/op/fttraj/gp_deformation_4600_31.pth',  '/home/op/fttraj/new_data/model_33/gp_deformation_4600_31.pth']
+csv_paths = ['/home/op/fttraj/new_data/data_25.csv', '/home/op/fttraj/new_data/data_27.csv', '/home/op/fttraj/new_data/data_29.csv', '/home/op/fttraj/new_data/data_31.csv', '/home/op/fttraj/new_data/data_33.csv']
+checkpoint_paths = ['/home/op/fttraj/gp_deformation_4600.pth', '/home/op/fttraj/gp_deformation_4600_27.pth'
+                    ,  '/home/op/fttraj/gp_deformation_4600_29.pth',  '/home/op/fttraj/gp_deformation_4600_31.pth',  '/home/op/fttraj/gp_deformation_4600_29.pth']
 
-csv_paths = ['/home/op/fttraj/new_data/data_20.csv', '/home/op/fttraj/new_data/data_32.csv']
-checkpoint_paths = ['/home/op/fttraj/gp_deformation_4600.pth', '/home/op/fttraj/gp_deformation_4600_31.pth']
+# csv_paths = ['/home/op/fttraj/new_data/data_20.csv', '/home/op/fttraj/new_data/data_32.csv']
+# checkpoint_paths = ['/home/op/fttraj/gp_deformation_4600.pth', '/home/op/fttraj/gp_deformation_4600_31.pth']
 
 plot_multiple_models(csv_paths, checkpoint_paths)
 
